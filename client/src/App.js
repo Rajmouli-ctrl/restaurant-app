@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import "./App.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001";
@@ -1657,6 +1658,7 @@ useEffect(() => {
         </>
       )}
 
+      <SpeedInsights />
     </div>
   );
 }
