@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "name": "Veg Biryani",
+    "price": 180,
+    "type": "veg",
+    "description": "Aromatic basmati rice with seasonal veggies and spices.",
+    "imageUrl": "/veg-biryani.jpg"
+  },
+  {
+    "id": 2,
+    "name": "Paneer Butter Masala",
+    "price": 200,
+    "type": "veg",
+    "description": "Creamy tomato gravy with soft paneer cubes.",
+    "imageUrl": "/paneer-butter-masala.jpg"
+  },
+  {
+    "id": 3,
+    "name": "Veg Fried Rice",
+    "price": 160,
+    "type": "veg",
+    "description": "Wok‑tossed rice with veggies, soy, and garlic.",
+    "imageUrl": "/veg-fried-rice.jpg"
+  },
+  {
+    "id": 4,
+    "name": "Gobi Manchurian",
+    "price": 150,
+    "type": "veg",
+    "description": "Crispy cauliflower in tangy Indo‑Chinese sauce.",
+    "imageUrl": "/gobi-manchurian.jpg"
+  },
+  {
+    "id": 5,
+    "name": "Dal Tadka",
+    "price": 140,
+    "type": "veg",
+    "description": "Yellow lentils tempered with cumin and garlic.",
+    "imageUrl": "/dal-tadka.jpg"
+  },
+  {
+    "id": 6,
+    "name": "Chicken Biryani",
+    "price": 250,
+    "type": "nonveg",
+    "description": "Slow‑cooked basmati with spiced chicken.",
+    "imageUrl": "/chicken-biryani.jpg"
+  },
+  {
+    "id": 7,
+    "name": "Chicken 65",
+    "price": 220,
+    "type": "nonveg",
+    "description": "Crispy fried chicken with curry leaves and chili.",
+    "imageUrl": "/chicken-65.jpg"
+  },
+  {
+    "id": 8,
+    "name": "Mutton Curry",
+    "price": 320,
+    "type": "nonveg",
+    "description": "Tender mutton simmered in rich masala gravy.",
+    "imageUrl": "/mutton-curry.jpg"
+  },
+  {
+    "id": 9,
+    "name": "Fish Fry",
+    "price": 280,
+    "type": "nonveg",
+    "description": "Crispy pan‑fried fish with lemon and spices.",
+    "imageUrl": "/fish-fry.jpg"
+  },
+  {
+    "id": 10,
+    "name": "Egg Curry",
+    "price": 180,
+    "type": "nonveg",
+    "description": "Boiled eggs in a spicy onion‑tomato gravy.",
+    "imageUrl": "/egg-curry.jpg"
+  }
+]
