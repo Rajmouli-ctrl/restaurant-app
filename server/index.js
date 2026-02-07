@@ -533,8 +533,9 @@ app.get("/report/customer-insights", async (req, res) => {
 // ---------------- START SERVER ----------------
 initDb()
   .then(() => {
-    app.listen(5001, () => {
-      console.log("🚀 Backend running on http://localhost:5001");
+    const port = Number(process.env.PORT || 5001);
+    app.listen(port, () => {
+      console.log(`🚀 Backend running on port ${port}`);
     });
   })
   .catch(err => {
