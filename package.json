@@ -1,0 +1,8 @@
+{
+  "name": "restaurant-app-root",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix server start",
+    "postinstall": "npm --prefix server install"
+  }
+}
