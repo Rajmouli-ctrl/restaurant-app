@@ -43,7 +43,7 @@ jobs:
         run: npm --prefix server ci
 
       - name: Install client dependencies
-        run: npm --prefix client ci
+        run: npm --prefix client install
 
       - name: Run client tests
         run: CI=true npm --prefix client test -- --watchAll=false
