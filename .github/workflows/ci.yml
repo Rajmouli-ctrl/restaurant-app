@@ -99,10 +99,8 @@ jobs:
           tail -n 120 backend.log || true
           exit 1
 
-      - name: Audit server dependencies (non-blocking)
-        continue-on-error: true
-        run: npm --prefix server audit --audit-level=high
+      - name: Audit server dependencies (report only)
+        run: npm --prefix server audit --audit-level=high || true
 
-      - name: Audit client dependencies (non-blocking)
-        continue-on-error: true
-        run: npm --prefix client audit --audit-level=high
+      - name: Audit client dependencies (report only)
+        run: npm --prefix client audit --audit-level=high || true
