@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
+const PDFDocument = require("pdfkit");
 
 const app = express();
 app.use(cors());
@@ -250,6 +251,101 @@ function buildCsv(headers, rows) {
   return [headerLine, ...dataLines].join("\n");
 }
 
+async function getReportExportData(type) {
+  const normalized = String(type || "").toLowerCase();
+
+  if (normalized === "daily") {
+    return {
+      title: "Daily Sales Report",
+      filenameBase: "daily-sales",
+      headers: ["date", "orders", "revenue"],
+      rows: buildDailySalesReport(await getOrders())
+    };
+  }
+
+  if (normalized === "monthly") {
+    return {
+      title: "Monthly Revenue Report",
+      filenameBase: "monthly-revenue",
+      headers: ["month", "orders", "revenue"],
+      rows: buildMonthlyRevenueReport(await getOrders())
+    };
+  }
+
+  if (normalized === "waste") {
+    const report = buildDailyWasteReport(
+      await getMenu(),
+      await getOrders(),
+      await getPreparedEntries()
+    );
+    return {
+      title: "Daily Waste Report",
+      filenameBase: "waste-report",
+      headers: ["date", "item", "prepared", "sold", "wasted"],
+      rows: report.flatMap(day =>
+        day.items.map(item => ({
+          date: day.date,
+          item: item.name,
+          prepared: item.prepared,
+          sold: item.sold,
+          wasted: item.wasted
+        }))
+      )
+    };
+  }
+
+  if (normalized === "monthly-waste") {
+    return {
+      title: "Monthly Waste Report",
+      filenameBase: "monthly-waste",
+      headers: ["month", "prepared", "sold", "wasted"],
+      rows: buildMonthlyWasteReport(
+        await getMenu(),
+        await getOrders(),
+        await getPreparedEntries()
+      )
+    };
+  }
+
+  return null;
+}
+
+function streamPdfReport(res, report, stamp) {
+  const filename = `${report.filenameBase}-${stamp}.pdf`;
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+  const doc = new PDFDocument({ margin: 36, size: "A4" });
+  doc.pipe(res);
+
+  const drawHeader = () => {
+    doc.fontSize(18).text(report.title);
+    doc.moveDown(0.5);
+    doc.fontSize(10).fillColor("#666").text(`Generated: ${new Date().toLocaleString()}`);
+    doc.fillColor("#000");
+    doc.moveDown(0.75);
+    doc.fontSize(11).text(report.headers.join(" | "));
+    doc.moveDown(0.4);
+  };
+
+  drawHeader();
+
+  if (!report.rows || report.rows.length === 0) {
+    doc.fontSize(11).text("No data available.");
+  } else {
+    report.rows.forEach(row => {
+      const line = report.headers.map(h => String(row[h] ?? "")).join(" | ");
+      if (doc.y > 760) {
+        doc.addPage();
+        drawHeader();
+      }
+      doc.fontSize(10).text(line, { width: 520 });
+    });
+  }
+
+  doc.end();
+}
+
 // ---------------- ROUTES ----------------
 app.get("/", (req, res) => {
   res.send("✅ Backend running on http://localhost:5001");
@@ -475,51 +571,35 @@ app.get("/report/monthly-waste", async (req, res) => {
 
 // Export reports as CSV
 app.get("/report/export", async (req, res) => {
-  const type = String(req.query.type || "").toLowerCase();
   const stamp = new Date().toISOString().slice(0, 10);
+  const report = await getReportExportData(req.query.type);
 
-  let headers = [];
-  let rows = [];
-  let filename = `report-${stamp}.csv`;
-
-  if (type === "daily") {
-    const report = buildDailySalesReport(await getOrders());
-    headers = ["date", "orders", "revenue"];
-    rows = report;
-    filename = `daily-sales-${stamp}.csv`;
-  } else if (type === "monthly") {
-    const report = buildMonthlyRevenueReport(await getOrders());
-    headers = ["month", "orders", "revenue"];
-    rows = report;
-    filename = `monthly-revenue-${stamp}.csv`;
-  } else if (type === "waste") {
-    const report = buildDailyWasteReport(
-      await getMenu(),
-      await getOrders(),
-      await getPreparedEntries()
-    );
-    headers = ["date", "item", "prepared", "sold", "wasted"];
-    rows = report.flatMap(day =>
-      day.items.map(item => ({
-        date: day.date,
-        item: item.name,
-        prepared: item.prepared,
-        sold: item.sold,
-        wasted: item.wasted
-      }))
-    );
-    filename = `waste-report-${stamp}.csv`;
-  } else {
+  if (!report) {
     return res.status(400).json({
       success: false,
-      message: "Invalid export type. Use daily, monthly, or waste."
+      message: "Invalid export type. Use daily, monthly, waste, or monthly-waste."
     });
   }
 
-  const csv = buildCsv(headers, rows);
+  const csv = buildCsv(report.headers, report.rows);
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${report.filenameBase}-${stamp}.csv"`);
   res.send(csv);
+});
+
+// Export reports as PDF
+app.get("/report/export-pdf", async (req, res) => {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const report = await getReportExportData(req.query.type);
+
+  if (!report) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid export type. Use daily, monthly, waste, or monthly-waste."
+    });
+  }
+
+  streamPdfReport(res, report, stamp);
 });
 
 // Today prep summary

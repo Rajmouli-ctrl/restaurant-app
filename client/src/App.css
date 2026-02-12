@@ -635,6 +635,7 @@ body {
 .order-controls {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .low-stock-controls {
