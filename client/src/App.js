@@ -550,6 +550,16 @@ useEffect(() => {
      UI
   ========================================================= */
 
+  const avgOrderValue = todayStats.orders
+    ? Math.round(todayStats.revenue / todayStats.orders)
+    : 0;
+  const ordersPace =
+    todayStats.orders >= 20 ? "High" : todayStats.orders >= 8 ? "Medium" : "Low";
+  const tableDemand =
+    todayStats.reservations >= 12 ? "High" : todayStats.reservations >= 5 ? "Medium" : "Low";
+  const wasteLevel =
+    todayStats.wasted >= 25 ? "High" : todayStats.wasted >= 10 ? "Medium" : "Low";
+
   return (
     <div className="app">
     {/* ===== TABLE RESERVATION (LANDING ONLY) ===== */}
@@ -1516,7 +1526,9 @@ useEffect(() => {
                       </div>
                       <div className="dashboard-card">
                         <div className="dashboard-label">Revenue</div>
-                        <div className="dashboard-value">₹{todayStats.revenue}</div>
+                        <div className="dashboard-value">
+                          ₹{Number(todayStats.revenue || 0).toLocaleString("en-IN")}
+                        </div>
                       </div>
                       <div className="dashboard-card">
                         <div className="dashboard-label">Reservations</div>
@@ -1526,6 +1538,44 @@ useEffect(() => {
                         <div className="dashboard-label">Waste</div>
                         <div className="dashboard-value">{todayStats.wasted}</div>
                       </div>
+                    </div>
+                    <div className="dashboard-row">
+                      <div className="dashboard-card dashboard-wide">
+                        <div className="dashboard-label">Quick Health</div>
+                        <div className="dashboard-chips">
+                          <span className={`dashboard-chip ${ordersPace.toLowerCase()}`}>
+                            Orders Pace: {ordersPace}
+                          </span>
+                          <span className={`dashboard-chip ${tableDemand.toLowerCase()}`}>
+                            Table Demand: {tableDemand}
+                          </span>
+                          <span className={`dashboard-chip ${wasteLevel.toLowerCase()}`}>
+                            Waste Level: {wasteLevel}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="dashboard-card dashboard-wide">
+                        <div className="dashboard-label">Average Order Value</div>
+                        <div className="dashboard-value">₹{avgOrderValue.toLocaleString("en-IN")}</div>
+                        <div className="dashboard-hint">Total Revenue / Total Orders</div>
+                      </div>
+                    </div>
+                    <div className="dashboard-actions">
+                      <button className="owner-ghost-btn" onClick={() => setActiveOwnerTab("orders")}>
+                        Open Orders
+                      </button>
+                      <button
+                        className="owner-ghost-btn"
+                        onClick={() => {
+                          setActiveOwnerTab("reservation");
+                          loadReservations();
+                        }}
+                      >
+                        Open Reservations
+                      </button>
+                      <button className="owner-ghost-btn" onClick={() => setActiveOwnerTab("waste")}>
+                        Open Waste Report
+                      </button>
                     </div>
                   </div>
                 </>
