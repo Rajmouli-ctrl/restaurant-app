@@ -3,6 +3,17 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import "./App.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001";
+const REPORT_TYPES = Object.freeze({
+  DAILY: "daily",
+  MONTHLY: "monthly",
+  WASTE: "waste",
+  MONTHLY_WASTE: "monthly-waste"
+});
+const REPORT_FORMATS = Object.freeze({
+  CSV: "csv",
+  PDF: "pdf"
+});
+const ORDER_STEPS = Object.freeze(["Pending", "Preparing", "Ready", "Completed"]);
 
 function App() {
 
@@ -375,7 +386,7 @@ useEffect(() => {
 
   const downloadReportFile = async (type, format) => {
     try {
-      const endpoint = format === "pdf" ? "export-pdf" : "export";
+      const endpoint = format === REPORT_FORMATS.PDF ? "export-pdf" : "export";
       const res = await fetch(`${API_BASE}/report/${endpoint}?type=${encodeURIComponent(type)}`);
       if (!res.ok) throw new Error("Failed");
 
@@ -397,8 +408,8 @@ useEffect(() => {
     }
   };
 
-  const downloadReportCsv = (type) => downloadReportFile(type, "csv");
-  const downloadReportPdf = (type) => downloadReportFile(type, "pdf");
+  const downloadReportCsv = (type) => downloadReportFile(type, REPORT_FORMATS.CSV);
+  const downloadReportPdf = (type) => downloadReportFile(type, REPORT_FORMATS.PDF);
 
   const printReport = (type) => {
     const url = `${API_BASE}/report/export-pdf?type=${encodeURIComponent(type)}`;
@@ -407,6 +418,21 @@ useEffect(() => {
       alert("Please allow popups to print report");
     }
   };
+
+  const renderReportActions = (type, onRefresh) => (
+    <div className="order-controls">
+      <button className="owner-ghost-btn" onClick={onRefresh}>Refresh</button>
+      <button className="owner-ghost-btn" onClick={() => downloadReportCsv(type)}>
+        Download CSV
+      </button>
+      <button className="owner-ghost-btn" onClick={() => downloadReportPdf(type)}>
+        Download PDF
+      </button>
+      <button className="owner-ghost-btn" onClick={() => printReport(type)}>
+        Print
+      </button>
+    </div>
+  );
 
   const updateOrderStatus = (id, status) => {
     fetch(`${API_BASE}/order/${id}/status`, {
@@ -421,8 +447,6 @@ useEffect(() => {
       .then(() => loadOrders())
       .catch(() => alert("❌ Failed to update order"));
   };
-
-  const orderSteps = ["Pending", "Preparing", "Ready", "Completed"];
 
   const updateReservationStatus = (id, status) => {
     fetch(`${API_BASE}/reservation/${id}/status`, {
@@ -1040,18 +1064,7 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Waste Report (Day‑Wise)</span>
-                      <div className="order-controls">
-                        <button className="owner-ghost-btn" onClick={loadDailyWaste}>Refresh</button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("waste")}>
-                          Download CSV
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("waste")}>
-                          Download PDF
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => printReport("waste")}>
-                          Print
-                        </button>
-                      </div>
+                      {renderReportActions(REPORT_TYPES.WASTE, loadDailyWaste)}
                     </div>
                     <div className="waste-day-list">
                       {dailyWaste.map(day => (
@@ -1237,7 +1250,7 @@ useEffect(() => {
                             Status: {o.status || "Pending"}
                           </div>
                           <div className="order-timeline">
-                            {orderSteps.map(step => (
+                            {ORDER_STEPS.map(step => (
                               <div
                                 key={step}
                                 className={`order-step ${step === (o.status || "Pending") ? "active" : ""}`}
@@ -1256,7 +1269,7 @@ useEffect(() => {
                             ))}
                           </div>
                           <div className="order-actions">
-                            {orderSteps.map(step => (
+                            {ORDER_STEPS.map(step => (
                               <button
                                 key={step}
                                 onClick={() => updateOrderStatus(o.id, step)}
@@ -1278,18 +1291,7 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Day‑Wise Sales</span>
-                      <div className="order-controls">
-                        <button className="owner-ghost-btn" onClick={loadDailySales}>Refresh</button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("daily")}>
-                          Download CSV
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("daily")}>
-                          Download PDF
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => printReport("daily")}>
-                          Print
-                        </button>
-                      </div>
+                      {renderReportActions(REPORT_TYPES.DAILY, loadDailySales)}
                     </div>
                     <div className="report-summary">
                       {(() => {
@@ -1347,18 +1349,7 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Monthly Revenue</span>
-                      <div className="order-controls">
-                        <button className="owner-ghost-btn" onClick={loadMonthlyRevenue}>Refresh</button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("monthly")}>
-                          Download CSV
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("monthly")}>
-                          Download PDF
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => printReport("monthly")}>
-                          Print
-                        </button>
-                      </div>
+                      {renderReportActions(REPORT_TYPES.MONTHLY, loadMonthlyRevenue)}
                     </div>
                     <div className="sales-graph">
                       {(() => {
@@ -1426,18 +1417,7 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Monthly Waste</span>
-                      <div className="order-controls">
-                        <button className="owner-ghost-btn" onClick={loadMonthlyWaste}>Refresh</button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("monthly-waste")}>
-                          Download CSV
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("monthly-waste")}>
-                          Download PDF
-                        </button>
-                        <button className="owner-ghost-btn" onClick={() => printReport("monthly-waste")}>
-                          Print
-                        </button>
-                      </div>
+                      {renderReportActions(REPORT_TYPES.MONTHLY_WASTE, loadMonthlyWaste)}
                     </div>
                     <div className="sales-graph">
                       {(() => {
