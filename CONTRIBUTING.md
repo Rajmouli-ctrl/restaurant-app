@@ -91,3 +91,4 @@ Examples:
 - `v0.1.0` initial demo
 - `v0.2.0` owner panel + reports
 - `v0.2.1` CI stabilization fixes
+- Owner dashboard branch created: codex/feat-owner-dashboard
