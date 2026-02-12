@@ -10,6 +10,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: restaurant_app_ci
+          MYSQL_USER: restaurant_user_ci
+          MYSQL_PASSWORD: restaurant_pass_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout
@@ -30,6 +45,36 @@ jobs:
       - name: Install client dependencies
         run: npm --prefix client ci
 
+      - name: Run client tests
+        run: CI=true npm --prefix client test -- --watchAll=false
+
       - name: Build client
         run: npm --prefix client run build
 
+      - name: Backend smoke test
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DB: restaurant_app_ci
+          MYSQL_USER: restaurant_user_ci
+          MYSQL_PASSWORD: restaurant_pass_ci
+          NODE_ENV: test
+          PORT: 5001
+        run: |
+          npm --prefix server start &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5001/ > /dev/null; then
+              echo "Backend health check passed"
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5001/
+
+      - name: Audit server dependencies (non-blocking)
+        continue-on-error: true
+        run: npm --prefix server audit --audit-level=high
+
+      - name: Audit client dependencies (non-blocking)
+        continue-on-error: true
+        run: npm --prefix client audit --audit-level=high
