@@ -475,6 +475,7 @@ useEffect(() => {
   useEffect(() => {
     if (isOwner && activeOwnerTab === "dashboard") {
       loadTodayDashboard();
+      loadDailySales();
     }
   }, [activeOwnerTab, isOwner]);
 
@@ -559,6 +560,13 @@ useEffect(() => {
     todayStats.reservations >= 12 ? "High" : todayStats.reservations >= 5 ? "Medium" : "Low";
   const wasteLevel =
     todayStats.wasted >= 25 ? "High" : todayStats.wasted >= 10 ? "Medium" : "Low";
+  const dashboardTrend = [...dailySales]
+    .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+    .slice(-7);
+  const trendMaxRevenue = Math.max(
+    1,
+    ...dashboardTrend.map(d => Number(d.revenue) || 0)
+  );
 
   return (
     <div className="app">
@@ -1576,6 +1584,24 @@ useEffect(() => {
                       <button className="owner-ghost-btn" onClick={() => setActiveOwnerTab("waste")}>
                         Open Waste Report
                       </button>
+                    </div>
+                    <div className="dashboard-trend">
+                      <div className="dashboard-label">Last 7 Days Revenue Trend</div>
+                      {dashboardTrend.length === 0 && (
+                        <div className="dashboard-hint">No daily sales data yet</div>
+                      )}
+                      {dashboardTrend.map(d => {
+                        const pct = Math.round(((Number(d.revenue) || 0) / trendMaxRevenue) * 100);
+                        return (
+                          <div key={`dboard-trend-${d.date}`} className="dashboard-trend-row">
+                            <div className="dashboard-trend-date">{d.date}</div>
+                            <div className="dashboard-trend-track">
+                              <div className="dashboard-trend-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="dashboard-trend-value">₹{d.revenue}</div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </>

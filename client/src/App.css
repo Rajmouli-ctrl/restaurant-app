@@ -844,6 +844,41 @@ body {
   gap: 8px;
 }
 
+.dashboard-trend {
+  margin-top: 14px;
+  border: 1px solid #f0d0d3;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.dashboard-trend-row {
+  display: grid;
+  grid-template-columns: 96px 1fr 94px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.dashboard-trend-date,
+.dashboard-trend-value {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashboard-trend-track {
+  height: 10px;
+  background: #eef3ea;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dashboard-trend-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2f9e44, #74b816);
+}
+
 /* ================= MENU EDITOR ================= */
 .menu-editor-new {
   display: grid;
@@ -1605,6 +1640,9 @@ body {
     grid-template-columns: 1fr;
   }
   .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-trend-row {
     grid-template-columns: 1fr;
   }
 }
