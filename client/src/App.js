@@ -373,6 +373,29 @@ useEffect(() => {
       .then(setMonthlyRevenue);
   };
 
+  const downloadReportCsv = async (type) => {
+    try {
+      const res = await fetch(`${API_BASE}/report/export?type=${encodeURIComponent(type)}`);
+      if (!res.ok) throw new Error("Failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const disposition = res.headers.get("content-disposition") || "";
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const fallback = `${type}-report.csv`;
+
+      a.href = url;
+      a.download = match?.[1] || fallback;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("❌ Failed to download CSV");
+    }
+  };
+
   const updateOrderStatus = (id, status) => {
     fetch(`${API_BASE}/order/${id}/status`, {
       method: "POST",
@@ -1005,7 +1028,12 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Waste Report (Day‑Wise)</span>
-                      <button className="owner-ghost-btn" onClick={loadDailyWaste}>Refresh</button>
+                      <div className="order-controls">
+                        <button className="owner-ghost-btn" onClick={loadDailyWaste}>Refresh</button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("waste")}>
+                          Download CSV
+                        </button>
+                      </div>
                     </div>
                     <div className="waste-day-list">
                       {dailyWaste.map(day => (
@@ -1232,7 +1260,12 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Day‑Wise Sales</span>
-                      <button className="owner-ghost-btn" onClick={loadDailySales}>Refresh</button>
+                      <div className="order-controls">
+                        <button className="owner-ghost-btn" onClick={loadDailySales}>Refresh</button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("daily")}>
+                          Download CSV
+                        </button>
+                      </div>
                     </div>
                     <div className="report-summary">
                       {(() => {
@@ -1290,7 +1323,12 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Monthly Revenue</span>
-                      <button className="owner-ghost-btn" onClick={loadMonthlyRevenue}>Refresh</button>
+                      <div className="order-controls">
+                        <button className="owner-ghost-btn" onClick={loadMonthlyRevenue}>Refresh</button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("monthly")}>
+                          Download CSV
+                        </button>
+                      </div>
                     </div>
                     <div className="sales-graph">
                       {(() => {

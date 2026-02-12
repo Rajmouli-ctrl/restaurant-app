@@ -142,6 +142,114 @@ async function getPreparedEntries() {
   }));
 }
 
+function buildDailySalesReport(orders) {
+  const daily = {};
+  orders.forEach(o => {
+    const dayKey = o.time ? o.time.slice(0, 10) : "Unknown";
+    const orderTotal = (o.items || []).reduce(
+      (sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 0),
+      0
+    );
+    if (!daily[dayKey]) daily[dayKey] = { date: dayKey, orders: 0, revenue: 0 };
+    daily[dayKey].orders += 1;
+    daily[dayKey].revenue += orderTotal;
+  });
+  return Object.values(daily).sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+function buildMonthlyRevenueReport(orders) {
+  const monthly = {};
+  orders.forEach(o => {
+    const monthKey = o.time ? o.time.slice(0, 7) : "Unknown";
+    const orderTotal = (o.items || []).reduce(
+      (sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 0),
+      0
+    );
+    if (!monthly[monthKey]) monthly[monthKey] = { month: monthKey, orders: 0, revenue: 0 };
+    monthly[monthKey].orders += 1;
+    monthly[monthKey].revenue += orderTotal;
+  });
+  return Object.values(monthly).sort((a, b) => (a.month < b.month ? 1 : -1));
+}
+
+function buildDailyWasteReport(menu, orders, preparedEntries) {
+  const soldByDate = {};
+  orders.forEach(order => {
+    const dayKey = order.time ? order.time.slice(0, 10) : "Unknown";
+    if (!soldByDate[dayKey]) soldByDate[dayKey] = {};
+    (order.items || []).forEach(item => {
+      const id = item.id;
+      soldByDate[dayKey][id] = (soldByDate[dayKey][id] || 0) + (item.qty || 0);
+    });
+  });
+
+  const report = preparedEntries.map(entry => {
+    const soldItems = soldByDate[entry.date] || {};
+    const items = menu.map(m => {
+      const prepared = Number(entry.items?.[m.id]) || 0;
+      const sold = Number(soldItems[m.id]) || 0;
+      const wasted = Math.max(prepared - sold, 0);
+      return {
+        id: m.id,
+        name: m.name,
+        prepared,
+        sold,
+        wasted
+      };
+    });
+    return { date: entry.date, items };
+  });
+
+  report.sort((a, b) => (a.date < b.date ? 1 : -1));
+  return report;
+}
+
+function buildMonthlyWasteReport(menu, orders, preparedEntries) {
+  const soldByDate = {};
+  orders.forEach(order => {
+    const dayKey = order.time ? order.time.slice(0, 10) : "Unknown";
+    if (!soldByDate[dayKey]) soldByDate[dayKey] = {};
+    (order.items || []).forEach(item => {
+      const id = item.id;
+      soldByDate[dayKey][id] = (soldByDate[dayKey][id] || 0) + (item.qty || 0);
+    });
+  });
+
+  const monthly = {};
+  preparedEntries.forEach(entry => {
+    const monthKey = entry.date ? entry.date.slice(0, 7) : "Unknown";
+    if (!monthly[monthKey]) {
+      monthly[monthKey] = { month: monthKey, prepared: 0, sold: 0, wasted: 0 };
+    }
+    const soldItems = soldByDate[entry.date] || {};
+    menu.forEach(m => {
+      const prepared = Number(entry.items?.[m.id]) || 0;
+      const sold = Number(soldItems[m.id]) || 0;
+      const wasted = Math.max(prepared - sold, 0);
+      monthly[monthKey].prepared += prepared;
+      monthly[monthKey].sold += sold;
+      monthly[monthKey].wasted += wasted;
+    });
+  });
+
+  return Object.values(monthly).sort((a, b) => (a.month < b.month ? 1 : -1));
+}
+
+function csvEscape(value) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  if (/["\n,]/.test(str)) return `"${str.replace(/"/g, "\"\"")}"`;
+  return str;
+}
+
+function buildCsv(headers, rows) {
+  const headerLine = headers.join(",");
+  const dataLines = rows.map(row =>
+    headers.map(h => csvEscape(row[h])).join(",")
+  );
+  return [headerLine, ...dataLines].join("\n");
+}
+
 // ---------------- ROUTES ----------------
 app.get("/", (req, res) => {
   res.send("✅ Backend running on http://localhost:5001");
@@ -340,37 +448,13 @@ app.post("/order/:id/status", async (req, res) => {
 // Daily sales report
 app.get("/report/daily-sales", async (req, res) => {
   const orders = await getOrders();
-  const daily = {};
-  orders.forEach(o => {
-    const dayKey = o.time ? o.time.slice(0, 10) : "Unknown";
-    const orderTotal = (o.items || []).reduce(
-      (sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 0),
-      0
-    );
-    if (!daily[dayKey]) daily[dayKey] = { date: dayKey, orders: 0, revenue: 0 };
-    daily[dayKey].orders += 1;
-    daily[dayKey].revenue += orderTotal;
-  });
-  const report = Object.values(daily).sort((a, b) => (a.date < b.date ? 1 : -1));
-  res.json(report);
+  res.json(buildDailySalesReport(orders));
 });
 
 // Monthly revenue report
 app.get("/report/monthly-revenue", async (req, res) => {
   const orders = await getOrders();
-  const monthly = {};
-  orders.forEach(o => {
-    const monthKey = o.time ? o.time.slice(0, 7) : "Unknown";
-    const orderTotal = (o.items || []).reduce(
-      (sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 0),
-      0
-    );
-    if (!monthly[monthKey]) monthly[monthKey] = { month: monthKey, orders: 0, revenue: 0 };
-    monthly[monthKey].orders += 1;
-    monthly[monthKey].revenue += orderTotal;
-  });
-  const report = Object.values(monthly).sort((a, b) => (a.month < b.month ? 1 : -1));
-  res.json(report);
+  res.json(buildMonthlyRevenueReport(orders));
 });
 
 // Day-wise waste report (per item)
@@ -378,36 +462,7 @@ app.get("/report/daily-waste", async (req, res) => {
   const menu = await getMenu();
   const orders = await getOrders();
   const preparedEntries = await getPreparedEntries();
-
-  const soldByDate = {};
-  orders.forEach(order => {
-    const dayKey = order.time ? order.time.slice(0, 10) : "Unknown";
-    if (!soldByDate[dayKey]) soldByDate[dayKey] = {};
-    (order.items || []).forEach(item => {
-      const id = item.id;
-      soldByDate[dayKey][id] = (soldByDate[dayKey][id] || 0) + (item.qty || 0);
-    });
-  });
-
-  const report = preparedEntries.map(entry => {
-    const soldItems = soldByDate[entry.date] || {};
-    const items = menu.map(m => {
-      const prepared = Number(entry.items?.[m.id]) || 0;
-      const sold = Number(soldItems[m.id]) || 0;
-      const wasted = Math.max(prepared - sold, 0);
-      return {
-        id: m.id,
-        name: m.name,
-        prepared,
-        sold,
-        wasted
-      };
-    });
-    return { date: entry.date, items };
-  });
-
-  report.sort((a, b) => (a.date < b.date ? 1 : -1));
-  res.json(report);
+  res.json(buildDailyWasteReport(menu, orders, preparedEntries));
 });
 
 // Monthly waste report
@@ -415,36 +470,56 @@ app.get("/report/monthly-waste", async (req, res) => {
   const menu = await getMenu();
   const orders = await getOrders();
   const preparedEntries = await getPreparedEntries();
+  res.json(buildMonthlyWasteReport(menu, orders, preparedEntries));
+});
 
-  const soldByDate = {};
-  orders.forEach(order => {
-    const dayKey = order.time ? order.time.slice(0, 10) : "Unknown";
-    if (!soldByDate[dayKey]) soldByDate[dayKey] = {};
-    (order.items || []).forEach(item => {
-      const id = item.id;
-      soldByDate[dayKey][id] = (soldByDate[dayKey][id] || 0) + (item.qty || 0);
+// Export reports as CSV
+app.get("/report/export", async (req, res) => {
+  const type = String(req.query.type || "").toLowerCase();
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  let headers = [];
+  let rows = [];
+  let filename = `report-${stamp}.csv`;
+
+  if (type === "daily") {
+    const report = buildDailySalesReport(await getOrders());
+    headers = ["date", "orders", "revenue"];
+    rows = report;
+    filename = `daily-sales-${stamp}.csv`;
+  } else if (type === "monthly") {
+    const report = buildMonthlyRevenueReport(await getOrders());
+    headers = ["month", "orders", "revenue"];
+    rows = report;
+    filename = `monthly-revenue-${stamp}.csv`;
+  } else if (type === "waste") {
+    const report = buildDailyWasteReport(
+      await getMenu(),
+      await getOrders(),
+      await getPreparedEntries()
+    );
+    headers = ["date", "item", "prepared", "sold", "wasted"];
+    rows = report.flatMap(day =>
+      day.items.map(item => ({
+        date: day.date,
+        item: item.name,
+        prepared: item.prepared,
+        sold: item.sold,
+        wasted: item.wasted
+      }))
+    );
+    filename = `waste-report-${stamp}.csv`;
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid export type. Use daily, monthly, or waste."
     });
-  });
+  }
 
-  const monthly = {};
-  preparedEntries.forEach(entry => {
-    const monthKey = entry.date ? entry.date.slice(0, 7) : "Unknown";
-    if (!monthly[monthKey]) {
-      monthly[monthKey] = { month: monthKey, prepared: 0, sold: 0, wasted: 0 };
-    }
-    const soldItems = soldByDate[entry.date] || {};
-    menu.forEach(m => {
-      const prepared = Number(entry.items?.[m.id]) || 0;
-      const sold = Number(soldItems[m.id]) || 0;
-      const wasted = Math.max(prepared - sold, 0);
-      monthly[monthKey].prepared += prepared;
-      monthly[monthKey].sold += sold;
-      monthly[monthKey].wasted += wasted;
-    });
-  });
-
-  const report = Object.values(monthly).sort((a, b) => (a.month < b.month ? 1 : -1));
-  res.json(report);
+  const csv = buildCsv(headers, rows);
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(csv);
 });
 
 // Today prep summary
