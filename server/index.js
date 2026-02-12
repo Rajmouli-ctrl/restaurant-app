@@ -133,13 +133,23 @@ async function getOrders() {
   }));
 }
 
+function parsePreparedItems(raw) {
+  if (!raw) return {};
+  if (typeof raw !== "string") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 async function getPreparedEntries() {
   const [rows] = await pool.query(
     "SELECT date, items FROM prepared_entries ORDER BY date DESC"
   );
   return rows.map(r => ({
     date: r.date.toISOString().slice(0, 10),
-    items: r.items
+    items: parsePreparedItems(r.items)
   }));
 }
 
@@ -251,28 +261,20 @@ function buildCsv(headers, rows) {
   return [headerLine, ...dataLines].join("\n");
 }
 
-async function getReportExportData(type) {
-  const normalized = String(type || "").toLowerCase();
-
-  if (normalized === "daily") {
-    return {
-      title: "Daily Sales Report",
-      filenameBase: "daily-sales",
-      headers: ["date", "orders", "revenue"],
-      rows: buildDailySalesReport(await getOrders())
-    };
-  }
-
-  if (normalized === "monthly") {
-    return {
-      title: "Monthly Revenue Report",
-      filenameBase: "monthly-revenue",
-      headers: ["month", "orders", "revenue"],
-      rows: buildMonthlyRevenueReport(await getOrders())
-    };
-  }
-
-  if (normalized === "waste") {
+const REPORT_EXPORT_BUILDERS = {
+  daily: async () => ({
+    title: "Daily Sales Report",
+    filenameBase: "daily-sales",
+    headers: ["date", "orders", "revenue"],
+    rows: buildDailySalesReport(await getOrders())
+  }),
+  monthly: async () => ({
+    title: "Monthly Revenue Report",
+    filenameBase: "monthly-revenue",
+    headers: ["month", "orders", "revenue"],
+    rows: buildMonthlyRevenueReport(await getOrders())
+  }),
+  waste: async () => {
     const report = buildDailyWasteReport(
       await getMenu(),
       await getOrders(),
@@ -292,22 +294,24 @@ async function getReportExportData(type) {
         }))
       )
     };
-  }
+  },
+  "monthly-waste": async () => ({
+    title: "Monthly Waste Report",
+    filenameBase: "monthly-waste",
+    headers: ["month", "prepared", "sold", "wasted"],
+    rows: buildMonthlyWasteReport(
+      await getMenu(),
+      await getOrders(),
+      await getPreparedEntries()
+    )
+  })
+};
 
-  if (normalized === "monthly-waste") {
-    return {
-      title: "Monthly Waste Report",
-      filenameBase: "monthly-waste",
-      headers: ["month", "prepared", "sold", "wasted"],
-      rows: buildMonthlyWasteReport(
-        await getMenu(),
-        await getOrders(),
-        await getPreparedEntries()
-      )
-    };
-  }
-
-  return null;
+async function getReportExportData(type) {
+  const normalized = String(type || "").toLowerCase();
+  const build = REPORT_EXPORT_BUILDERS[normalized];
+  if (!build) return null;
+  return build();
 }
 
 function streamPdfReport(res, report, stamp) {
