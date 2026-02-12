@@ -4,15 +4,15 @@
 
 Use this format:
 
-`codex/<type>-<scope>-<short-desc>`
+`feature/<type>-<scope>-<short-desc>`
 
 Examples:
-- `codex/feat-owner-dashboard`
-- `codex/fix-reservation-status`
-- `codex/chore-ci-hardening`
-- `codex/docs-deployment-guide`
-- `codex/refactor-order-service`
-- `codex/test-app-smoke`
+- `feature/feat-owner-dashboard`
+- `feature/fix-reservation-status`
+- `feature/chore-ci-hardening`
+- `feature/docs-deployment-guide`
+- `feature/refactor-order-service`
+- `feature/test-app-smoke`
 
 Allowed `type` values:
 - `feat`
@@ -91,4 +91,4 @@ Examples:
 - `v0.1.0` initial demo
 - `v0.2.0` owner panel + reports
 - `v0.2.1` CI stabilization fixes
-- Owner dashboard branch created: codex/feat-owner-dashboard
+- Owner dashboard branch created: feature/feat-owner-dashboard
