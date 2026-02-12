@@ -373,9 +373,10 @@ useEffect(() => {
       .then(setMonthlyRevenue);
   };
 
-  const downloadReportCsv = async (type) => {
+  const downloadReportFile = async (type, format) => {
     try {
-      const res = await fetch(`${API_BASE}/report/export?type=${encodeURIComponent(type)}`);
+      const endpoint = format === "pdf" ? "export-pdf" : "export";
+      const res = await fetch(`${API_BASE}/report/${endpoint}?type=${encodeURIComponent(type)}`);
       if (!res.ok) throw new Error("Failed");
 
       const blob = await res.blob();
@@ -383,7 +384,7 @@ useEffect(() => {
       const a = document.createElement("a");
       const disposition = res.headers.get("content-disposition") || "";
       const match = disposition.match(/filename="?([^";]+)"?/i);
-      const fallback = `${type}-report.csv`;
+      const fallback = `${type}-report.${format}`;
 
       a.href = url;
       a.download = match?.[1] || fallback;
@@ -392,7 +393,18 @@ useEffect(() => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert("❌ Failed to download CSV");
+      alert(`❌ Failed to download ${String(format).toUpperCase()}`);
+    }
+  };
+
+  const downloadReportCsv = (type) => downloadReportFile(type, "csv");
+  const downloadReportPdf = (type) => downloadReportFile(type, "pdf");
+
+  const printReport = (type) => {
+    const url = `${API_BASE}/report/export-pdf?type=${encodeURIComponent(type)}`;
+    const win = window.open(url, "_blank");
+    if (!win) {
+      alert("Please allow popups to print report");
     }
   };
 
@@ -1033,6 +1045,12 @@ useEffect(() => {
                         <button className="owner-ghost-btn" onClick={() => downloadReportCsv("waste")}>
                           Download CSV
                         </button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("waste")}>
+                          Download PDF
+                        </button>
+                        <button className="owner-ghost-btn" onClick={() => printReport("waste")}>
+                          Print
+                        </button>
                       </div>
                     </div>
                     <div className="waste-day-list">
@@ -1265,6 +1283,12 @@ useEffect(() => {
                         <button className="owner-ghost-btn" onClick={() => downloadReportCsv("daily")}>
                           Download CSV
                         </button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("daily")}>
+                          Download PDF
+                        </button>
+                        <button className="owner-ghost-btn" onClick={() => printReport("daily")}>
+                          Print
+                        </button>
                       </div>
                     </div>
                     <div className="report-summary">
@@ -1327,6 +1351,12 @@ useEffect(() => {
                         <button className="owner-ghost-btn" onClick={loadMonthlyRevenue}>Refresh</button>
                         <button className="owner-ghost-btn" onClick={() => downloadReportCsv("monthly")}>
                           Download CSV
+                        </button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("monthly")}>
+                          Download PDF
+                        </button>
+                        <button className="owner-ghost-btn" onClick={() => printReport("monthly")}>
+                          Print
                         </button>
                       </div>
                     </div>
@@ -1396,7 +1426,18 @@ useEffect(() => {
                   <div className="owner-section">
                     <div className="owner-section-title">
                       <span>Monthly Waste</span>
-                      <button className="owner-ghost-btn" onClick={loadMonthlyWaste}>Refresh</button>
+                      <div className="order-controls">
+                        <button className="owner-ghost-btn" onClick={loadMonthlyWaste}>Refresh</button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportCsv("monthly-waste")}>
+                          Download CSV
+                        </button>
+                        <button className="owner-ghost-btn" onClick={() => downloadReportPdf("monthly-waste")}>
+                          Download PDF
+                        </button>
+                        <button className="owner-ghost-btn" onClick={() => printReport("monthly-waste")}>
+                          Print
+                        </button>
+                      </div>
                     </div>
                     <div className="sales-graph">
                       {(() => {
