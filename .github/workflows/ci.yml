@@ -51,7 +51,21 @@ jobs:
       - name: Build client
         run: npm --prefix client run build
 
+      - name: Wait for MySQL
+        shell: bash
+        run: |
+          for i in {1..60}; do
+            if (echo > /dev/tcp/127.0.0.1/3306) >/dev/null 2>&1; then
+              echo "MySQL port is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "MySQL did not become reachable in time"
+          exit 1
+
       - name: Backend smoke test
+        shell: bash
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
@@ -61,15 +75,29 @@ jobs:
           NODE_ENV: test
           PORT: 5001
         run: |
-          npm --prefix server start &
-          for i in {1..30}; do
+          set -euo pipefail
+          npm --prefix server start > backend.log 2>&1 &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID >/dev/null 2>&1 || true" EXIT
+
+          for i in {1..60}; do
             if curl -fsS http://127.0.0.1:5001/ > /dev/null; then
               echo "Backend health check passed"
-              break
+              curl -fsS http://127.0.0.1:5001/
+              exit 0
+            fi
+
+            if ! kill -0 "$SERVER_PID" >/dev/null 2>&1; then
+              echo "Backend process exited early"
+              tail -n 120 backend.log || true
+              exit 1
             fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:5001/
+
+          echo "Backend did not become healthy in time"
+          tail -n 120 backend.log || true
+          exit 1
 
       - name: Audit server dependencies (non-blocking)
         continue-on-error: true
